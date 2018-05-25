@@ -9,7 +9,7 @@ M4(){ TPUT 7 5; $e "Jobs/cron";}
 M5(){ TPUT 8 5; $e "Network";}
 M6(){ TPUT 9 5; $e "Services";}
 M7(){ TPUT 10 5; $e "Softwares";}
-M8(){ TPUT 11 5; $e "EXIT";}
+M8(){ TPUT 12 5; $e "EXIT";}
 LM=8
 
 scan() {
@@ -142,7 +142,7 @@ R(){
 
 HEAD() {
   DRAW
-  for each in $(seq 1 $((LM+5)));do
+  for each in $(seq 1 $((LM+6)));do
     $E "x                                          x"
   done
   WRITE ; MARK ; TPUT 1 2
@@ -150,7 +150,7 @@ HEAD() {
 }
 
 FOOT() {
-  MARK ; TPUT $((LM+5)) 2
+  MARK ; TPUT $((LM+6)) 2
   head -c 42 /dev/zero | tr '\0' ' ' ; UNMARK ;
 }
 
