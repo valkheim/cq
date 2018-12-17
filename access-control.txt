@@ -1,0 +1,246 @@
+#
+## Contrôle d'accès
+################################################################################
+
+Les contrôles d'accès jouent un rôle central dans une politique de sécurité et
+dans la sécurité des systèmes d'information en général. En supposant qu'un
+utilisateur a été authentifié, les contrôles d'accès définissent les ressources
+auquel l'utilisateur authentifié peut accéder avec succès en accod avec le type
+d'accès utilisé.
+
+  ##################              +-------------------+
+  # ADMINISTRATEUR # <----------> | Base de données   |
+  # SECURITÉ       #              | des autorisations |
+  ##################              +-------------------+
+                                            ^
+ ###                                        |
+ #U#                                        |
+ #T#                            |           |            |
+ #I#                            |           |            |
+ #L#                            |           v            |
+ #I#     +--------------------+ |   +------------------+ |   #################
+ #S#---->| Fonction           |-+-->| Fonction de      |-+--># Ressources du #
+ #A#     | d'authentification | |   | contrôle d'accès | |   # système       #
+ #T#     +--------------------+ |   +------------------+ |   #################
+ #E#                            |                        |
+ #U#                            |                        |
+ #R#                            |                        |
+ ###                     Authentification         Contrôle d'accès
+
+ Les relations entre les contrôles d'accès et les autres fonctions de sécurité
+
+#
+## L'état de protection
+################################################################################
+
+Une politique de sécurité paritionne des états sûrs et non sûrs. L'état d'un
+système est la collection de tous les éléments de tous les composants dudit
+système. Le sous ensemble de ces éléments et de ces composants qui interviennent
+dans la protection du système est l'état de protection (protection state). Des
+changements dans le système peuvent se traduire par des changements dans l'état
+de protection. Ces changements doivent être contraints : notre modèle de
+contrôle d'accès doit dévinir un ensemble d'états autorisés et un ensemble
+d'opérations valides sur ces états.
+
+#
+## La matrice de contrôle d'accès (ACM : Access Control Matrix)
+################################################################################
+
+Une opération autorisée sur un état autorisé donne un autre état autorisé.
+La matrice de contrôle d'accès est le modèle le plus précis utilisé pour décrire
+l'état de protection. Elle caractérise les droits de chaque sujet dans le
+respect de chaque entité du système.
+L'ensemble O des objets et l'ensemble de toutes les entités protégées et chacune
+est utilisée pour contenir ou reçevoir de l'information.
+L'ensemble S des sujets et l'ensemble de toutes les entités qui sont capable
+d'accéder à des objets (processus, utilisateurs, ...).
+Un sujet est tenu responsable de ses actions et un audit peut être utilisé pour
+enregistrer l'association de sujets avec leurs actions relevant du domaine de la
+sécurité. La matrice de contrôle d'accès A capture les relations entre les
+sujets et les objets en termes de droits contenus dans un ensemble de droits R.
+L'ensemble de droits R dépend du contexte et de l'objet qui doit être protégé.
+Par exemple, un utilisateur peut se voir accordé la permission de créditer un
+compte en banque mais pas de le débiter quand bien même les deux opérations
+viennent modifier le montant du compte. Le propriétaire d'un objet peut avoir la
+permission de donner ou de révoquer les accès à celui-ci en faisant des
+modifications à la politique de sécurité.
+En pratique, la matrice de contrôle d'accès est trop complexe à mettre en place
+et est décomposée en une des deux manières possibles. Selon les colonnes ou
+selon les lignes.
+
+#
+## Les listes de contrôle d'accès (ACL : Access Control Lists)
+################################################################################
+
+Il s'agit d'une matrice de contrôle d'accès qu'on décompose en lignes.
+Pour chaque objet, l'ACL liste les utilisateurs et les droits accès qui leur
+sont permis. L'ACL peut contenir une entrée par défaut qui sert aux utilisateurs
+qui ne sont pas explicitement intégrés dans la liste. On utilise cet utilisateur
+par défaut pour lister les moindres privilèges.
+
+#
+## Tickets de capacité (capability tickets)
+################################################################################
+
+La structure de données des ACL n'est pas très compatible avec une analyse des
+droits d'accès par utilisateur. Les tickets de capacité résultent d'une matrice
+de contrôle d'accès qu'on décompose en colonnes cette fois-ci. Un ticke spécifie
+les objets autorisés et les droits pour un utilisateur en particulier. Il est
+aisé de déterminer les droits d'accès par utilisateur mais c'est plus difficile
+de déterminer quels utilisateurs on accès à une ressource donnée.
+
+#
+## Table d'autorisation
+################################################################################
+
+Une table d'autorisations est une représentation commode qui combien les ACL et
+les tickets de capacité où chaque ligne capture un droit d'accès d'un sujet sur
+une ressource. En ordonnant par objets, on obtient une liste de contrôle d'accès
+(ACL) et en ordonnant par subjet, une liste de capacités.
+
+                +-----------+------------------+-----------+
+                |   Sujet   |   Mode d'accès   |   Objet   |
+                +-----------+------------------+-----------+
+                |     A     |  Propriété       | Fichier 1 |
+                |     A     |  Lecture         | Fichier 1 |
+                |     A     |  Écriture        | Fichier 1 |
+                |     A     |  Propriété       | Fichier 3 |
+                |     A     |  Lecture         | Fichier 3 |
+                |     A     |  Écriture        | Fichier 3 |
+                |     B     |  Lecture         | Fichier 1 |
+                |     B     |  Propriété       | Fichier 2 |
+                |     B     |  Lecture         | Fichier 2 |
+                |     B     |  Écriture        | Fichier 2 |
+                |     B     |  Lecture         | Fichier 4 |
+                |     B     |  Lecture         | Fichier 1 |
+                |     C     |  Écriture        | Fichier 1 |
+                |     C     |  Lecture         | Fichier 2 |
+                |     C     |  Propriété       | Fichier 4 |
+                |     C     |  Lecture         | Fichier 4 |
+                |     C     |  Écriture        | Fichier 4 |
+                +-----------+------------------+-----------+
+
+#
+## Transitions d'état de protection
+################################################################################
+
+Un sujet peut lui-même être un objet. Par exemple, un processus qui agit comme
+un sujet peut avoir le droit de signaler un autre processus (agissant comme un
+objet).
+Soit un état initial x0 = (s0, o0, a0)
+Soit un ensemble de transitions d'états représentés par l'ensemble d'opérations
+t1, t2, ...
+Les états successifs sont x1,x2, ....
+xi <=> t(i+1) x(i+1) représente la transition d'un état xi à un état x(i+1) par
+l'opération t(i+1).
+x <=>* y représente la transition d'un état x à un état y à travers une série
+d'opérations.
+
+#
+## Opérations primitives de transition
+################################################################################
+
+Les opérations primitive suivantes peuvent être appliquées sur une matrice de
+contrôle d'accès :
+  1 . Créer un sujet S ajoute une ligne et une colonne pour S (S ne doit pas
+      exister comme sujet ni objet et ne doit pas avoir de droits assignés).
+  2 . Créer un objet O ajoute un colonne pour O (O ne doit pas déjà exister
+      comme sujet ni objet et ne doit pas avoir de droits assignés).
+  3 . Ajouter un droit dans A[S, O].
+  4 . Supprimer un droit de A[S, O].
+  5 . Supprimer le sujet S.
+  6 . Supprimer l'objet O.
+
+#
+## Combiner les opérations de transition
+################################################################################
+
+Les opérations primitives peuvent être combinées pour construire des commandes :
+command spawn_process(P, C) {
+  Create subject C;
+  Enter own into A[P, C];
+  Enter read into A[P, C];
+  Enter write into A[P, C];
+  Enter read into A[C, P];
+  Enter write into A[C, P];
+}
+On met read et write dans le parent et l'enfant pour qu'il puisse se signaler
+entre eux.
+
+#
+## Commandes conditionnelles
+################################################################################
+
+command grant_read_file(P, F, Q) {
+  if own in A[P, F];
+  then
+    Enter read into A[Q, F];
+}
+
+Cette commande nous permettra par exemple d'éviter que les utilisateurs qui ne
+possèdent pas un fichier accordent un droit de lecture sur ce fichier aux autres
+
+#
+## Contrôle d'accès discrétionnaire (DAC : Discretionnary Access Control)
+################################################################################
+
+Sous contrôle d'accès discrétionnaire (ou discretionary access control), un
+utilisateur est propriétaire d'objets et contrôle les accès à ces objets. Linux
+utilise le modèle DAC et ainsi, est vulnérable aux attaques où la donnée est
+divulgée ou corrompue. Que ce soit par un utlisateur malveillant ou pas un
+cheval de troie qui est éxécuté par un utilisateur.
+
+#
+## Contrôle d'accès obligatoire (MAC : Mandatory Access Control)
+################################################################################
+
+Permet une politique de sécurité qui ne peut pas être modifiée par les sujets à
+l'instar du simple DAC et où les accès sont définis impérativement par la
+politique de sécurité. Sous contrôle d'accès obligatoire, la politique de
+sécurité contrôle les accès aux objets et un utilisateur ordinaire ne peut pas
+altérer cet accès. Le contrôle d'accès obligatoire est appliqué par des
+mécanismes qui implémentent la politique de sécurité.
+
+#
+## Contrôle d'accès basé sur les rôles (RBAC : Role based access control)
+################################################################################
+
+Avec le DAC, les droits d'accès sont définis en accord avec l'identité des
+utilisateurs et des groupes auquels ils appartiennent. RBAC est basé sur les
+rôles que tiennent les utilisateurs dans le système plutôt que leur sur leurs
+identités et les droits d'accès sont assignés aux rôles pluôt qu'aux
+utilisateurs. Les utilisateurs se voient accordés un rôle en fonction de leurs
+responsabilités et usages. La relation entre les utilisateurs et les rôles est
+multiple tout comme celle des rôles et des ressources. Chaque rôle a des droits
+d'accès spécifiques à une ou plusieurs ressources et puisqu'un utilisateur est
+assigné à un rôle qui ne lui permet de faire que ce dont il a besoin/est requis,
+le principe de moindre privilège est renforcé.
+Plusieurs types de RBAC sont possibles, certains peuvent incorporer des
+hiérarchies entre les rôles avec un rôle automatiquement hérité des droits
+d'accès des rôles qu'il domine. Des contraintes peuvent également être ajoutées,
+par exemple, une exclusion mutuelle des rôles requière qu'un utilisateur prenne
+unique un seul rôle durant une session et un droit d'accès ne peut apparaître
+que dans un unique rôle.
+
+#
+## Lexique
+################################################################################
+
+  - Une politique de sécurité partitionne un système en un ensemble d'états
+    sécurisés et en un ensemble d'états non autorisés ou non sécurisés.
+  - Un système sécurisé est un système qui démarre d'un état autorisé et qui ne
+    peut pas passer dans un état non autorisé.
+  - Une brèche de sécurité arrive quand le système entre dans un état non
+    autorisé et qu'on le supervise grâce à un audit.
+  - Un modèle de sécurité défini une politique en terme d'opétations et de
+    transitions qui sert de représentation pour les mécanismes de sécurité
+  - Un mécanisme de sécurité est un outil en charge de faire respecter la
+    politique de sécurité
+
+#
+## Références
+################################################################################
+
+  - Introduction to computer security - Bishop
+  - Computer Security : Principles and Practice - Stallings
+  - Access Control : Principles and Practive - Sandhu & Samarati
