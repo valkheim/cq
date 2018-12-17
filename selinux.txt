@@ -1,0 +1,327 @@
+#
+## Contrôle d'accès discrétionnaire (DAC)
+################################################################################
+
+Sous contrôle d'accès discrétionnaire (ou discretionary access control), un
+utilisateur est propriétaire d'objets et contrôle les accès à ces objets. Linux
+utilise le modèle DAC et ainsi, est vulnérable aux attaques où la donnée est
+divulgée ou corrompue. Que ce soit par un utlisateur malveillant ou pas un
+cheval de troie qui est éxécuté par un utilisateur.
+
+#
+## Principe de moindre privilège
+################################################################################
+
+En accord avec le principe de moindre prvilège, les utilisateurs et les
+processus doivent se restreindre aux seuls privilèges qu'ils requièrent pour
+faire leur job. Linux n'adhère pas au principe de moindre privilège et
+distingue uniquement deux niveaux d'autorisation, un pour les utilisateurs
+ordinaires et l'autre pour les super utilisateurs. Compromettre un processus
+"privilégié" donne un accès complet au système. La compromission d'un
+utilisateur ordinaire confère tout de même de nombreux privilèges. Comme celui
+de lancer un shell, créer des sockets, modifier des droits d'accès, ... Il peut
+également s'agir d'une étape vers l'obtention de privilèges plus élevés.
+
+#
+## Cycle de correctifs
+################################################################################
+
+À l'instar du Patch Tuesday de Microsoft, quand un fournisseur apprend qu'un de
+ses produits est vulnérable à un certain type d'attaque, il fournit généralement
+un correctif (patch) que les utilisateurs peuvent installer afin de mitiger la
+menace sous-jacente et ainsi éviter son exploitation. Maintenir la sécurité d'un
+système consiste entre autres à se tenir au courant et installer les correctifs
+quand c'est nécessaire. Cette réaction doit être rapide puisque le système est
+rendu plus vulnérable à la publication du patch jusqu'à son installation. Il
+faut ainsi réduire le temps entre le moment ou le fournisseur prend connaissance
+d'une vulnérabilité sur son produit et le moment ou il est installé sur le
+système. On mesure généralement cette durée en jours. Il existe des
+vulnérabilités pour lesquelles il n'existe pas de correctifs connus des
+fournisseurs. La durée entre la découverte des fournisseurs et l'installation
+est alors nulle, on parle de vulnérabilité de jour zéro (zero-day). Cela induit
+des attaques de "jour zéro".
+
+#
+## Le problème des zero-day
+################################################################################
+
+Le problème est que l'application d'un correctif est une défense qui ne peut pas
+être mise en place face à des menace de zero-day. La défense en prodonfeur est
+une stratégie pour faire face à ces attaques et implique de déployer des moyens
+de défense additionnels qu'importe sa disance vis-à-vis de l'entité à sécuriser.
+Il s'agit d'assumer que le système n'est pas fiable et de mettre en place des
+éléments qui permettront de détecter et de répondre aux attaques et/ou de
+minimiser les dommages causés par une attaque réussie. Les défenses au niveau du
+réseau incluent les pare-feux (firewalls) et systèmes de détection d'intrusion
+(IDS). Les défenses sur la machine sont les plus efficaces contre les problèmes
+de zero-day et incluent des techniques de protection de la mémoire, la
+distribution aléatoire de l'espace d'adressage (ASLR), bacs à sable (sandboxing)
+à travers des outils comme chroot, etc.
+
+#
+## SELinux (Security Enhanced Linux)
+################################################################################
+
+Malgré ces mécanismes de défenses répartis sur plusieurs niveaux, un problème
+fondamental reste en place. Les systèmes d'exploitation manquent d'un moyen de
+mettre en place un contrôle d'accès obligatoire (MAC, mandadtory access control)
+capable d'assurer strictement la confidentialité et l'intégrite des données.
+La NSA (agence nationale de la sécurité états-unienne) a réussit à produire une
+architecture MAC du nom de Flask. Cette architecture a été pour la première fois
+implémentée en tant que correctif (patch) du kernel linux pour donner SELinux.
+Ce correctif fût toutefois refusé tel quel et du prendre un aspect plus
+modulaire. Il était souhaité par la communauté qu'un support général de MAC soit
+possible (pas seulement SELinux) avec des frontières claires entre les
+mécanismes de sécurité, l'exécuteur de la politique de sécurité et la politique
+de sécurité. SELinux utilise le modèle Bell LaPaluda (formalisme de sécurité
+multi-niveau).
+
+#
+## Architecture de SELinux
+################################################################################
+
+Une conception modulaire permet à la communauté Linux d'implémenter des
+politiques et serveurs MAC alternatifs qui peuvent tirer avantage des nouveaux
+mécanismes de sécurité (AppArmor et SMACK par exemple). De ce travail est né le
+module de sécurité linux (LSM for Linux Security Model), le serveur de sécurité
+SELinux qui est chargé de faire éxécuter la politique de sécurité (sous forme de
+module kernel qui s'interface avec LSM) et un ensemble de règles de sécurité
+SELinux servant de référence. Un serveur de sécurité utilise LSM pour exploiter
+des événements relatifs à la sécurité. LSM donne ainsi les moyens de mettre en
+place des mécanismes de sécurité nécessaires pour implémenter le contrôle
+d'accès obligatoire (MAC). Le contrôle d'accès discrétionnaire (DAC) s'applique
+toujours et est prioritaire sur le MAC. Au niveau SELinux, toutes les actions
+non explicitement permises par la politique de sécurité sont interdites. Il
+s'agit d'un système de liste blanche (whitelisting). Les décisions prises sont
+mises en cache dans le "Access Vector Cache" de manière à accélérer les
+décisions futures. La politique est définie dans le domaine utilisateur
+(userland) avant d'être compilée et chargée dans le noyau (kernel). SELinux est
+dispensé avec tout un tas d'outils permettant de gérer la politique de sécurité.
+
++------------------------------------------------------------+
+|                                                     SELINUX|
+|  +---------------------+ <------- +-----+                  |
+|  |Politique de sécurité|          |Cache|                  |
+|  +---------------------+ -------> +-----+                  |
+|                                     ^  |                   |
+|                                     |  v                   |
+|  +---------+                      +-------------------+    |     +--------+
+|  |selinuxfs|                      |Serveur de sécurité| -------> |Journaux|
+|  +---------+                      +-------------------+    |     +--------+
+|                                     ^  |                   |
++-------------------------------------|--|-------------------+
+                                      |  v
+             +---+                  +---------------------+
+      -----> |DAC| ---------------> |Linux Security Module| -----> Événements
+             +---+                  +---------------------+
+
+#
+## Comment fonctionne SELinux
+################################################################################
+
+SELinux est une implémentation du contrôle d'accès oligatoire, elle n'exclut pas
+les attaques de zero-day mais en minimise les conséquences :
+  1 . Les programmes tournet dans des domaines qui sont chacuns restreints aux
+      privilèges seuls dont le programme a besoin pour faire son job.
+  2 . Les permissions sont assignées à des domaines et non à des utilisateurs.
+  3 . Les permissions sur un objet de peuvent pas être réécrites par le
+      propriétaire de cet objet hormis si c'est explicitement autorisé par la
+      politique de sécurité.
+  4 . Les permissions sont très granuleuses, elles permettent un contrôle très
+      fin de capacités d'un programmes (jusqu'au niveau du socket par exemple).
+Sous contrôle d'accès obligatoire, un programme compromis confère seulement à
+l'attaquant un nombre limité de possibilités : celles du domaine dans lequel le
+programme compromis a été restreint. SELinux dispose également d'une
+journalisation ainsi que des outils d'audit qui permettent de superviser le
+système.
+
+#
+## Type Enforcement (TE) et Role-Based Access Control (RBAC)
+################################################################################
+
+Le coeur de SELinux est un modèle de contrôle d'accès connu sous le nom de type
+enforcement. C'est ce type enforcement qui implémente le sandboxing du programme
+au travers du confinement dudit programme dans un domaine et en restreignant
+chaque domaine à des privilèges strictement suffisants pour faire leur travail.
+Le contrôle d'accès basé sur les rôles (role-based access control) est utilisé
+pour prévenir les accès entrants non autorisés des utilisateurs SELinux dans des
+domaines particuliers. Les utilisateurs Linux sont reliés aux utilisateurs
+SELinux et on assigne à ces derniers un ensemble de rôles par lesquels chaque
+utilisateur est autorisé à accéder à un certains ensemble de domaines.
+
+#
+## Transitions de domaine
+################################################################################
+
+Un processus transite vers un nouveau domaine en exécutant un programme qui sert
+de point d'entrée vers ce nouveau domaine. Pour qu'un sujet transite vers un
+nouveau domaine en exécutant un programme, les conditions suivantes doivent être
+réunies :
+  1 . Le programme doit être accessible depuis le domaine du sujet.
+  2 . Le rôle du sujet doit être autorisé dans le domaine ciblé.
+  3 . La transition du domaine sujet au domaine cible doit être autorisée.
+  4 . Le programme doit être autorisé à se comporter comme un point d'entrée
+      pour le domaine cible.
+  5 . Exécuter le programme doit procéder à la transition vers le domaine cible.
+
+#
+## Sujets et objets SELinux
+################################################################################
+
+Dans un contexte où SELinux est présent, les contrôles DAC et MAC sont de
+rigueur :  si une action est approuvée par DAC, elle est ensuite soumises aux
+critères de MAC. SELinux évalue les actions effectuées par des sujets
+(processus) à l'encontre d'objets et journalise les autorisations qui ont
+échouées. Les objets sont des processus, des fichiers, des répertoires et des
+ressources système qu'elles résident dans l'espace utilisateur (userland) ou
+dans l'espace noyau (kernel land). On regroupe les objets en classes (plus de
+24) : processus, système de fichiers, répertoires, fichiers, mémoires partagées,
+sockets, noeuds, ...). Chaque classe d'objets dispose d'un ensemble de
+permissions qui lui est propre. Les sujets et objets peuvent être regroupées en
+familles avec des permissions qui sont appliquées de manière identiques à tous
+les membres d'une même famille.
+
+#
+## Les aspects pratiques de SELinux
+################################################################################
+
+SELinux est bien plus complet que le simple rwx de DAC quant aux persmissions
+pouvant être appliquées aux objets. Au lieu vérifier que chaque droit du sujet
+sur chaque objets est bien définni dans la politique de sécurité, SELinux prend
+le parti inverse en présupposant que tout ce qui n'est pas expressément
+autorisé, est interdit (whitelisting). Toutefois, la politique de réfutation par
+défaut peut être difficile à être bien utilisée. Dès lors, il existe des
+politiques de sécurité ciblant seulement un aspect de la défense du système
+comme la défense de facade sur le réseau. Dans la pratique, on utilise des
+politiques de sécurité qui ciblent uniquement les applications à hauts risques
+laissant les autres tourner dans des domaines non contraignants et qui sont
+alors uniquement soumises au DAC.
+
+#
+## Utilisateurs, roles et domaines
+################################################################################
+
+À chaque sujet et objet sont assigné un contexte de sécurité. Chaque contexte de
+sécurité est composé de trois éléments : un utilisateur SELinux, un rôle et un
+domaine. Pou les sujets (processus), le champ utilisateur indique pour qui le
+sujet est en train de tourner tandis que pour les objets, le champ utilisateur
+indique à quel compte l'objet est associé. En général, les utilisateurs SELinux
+incluent user_u,guest_u,staff_u et sysadm_u et les rôles correspondant user_r,
+guest_r,staff_r et sysadm_r. Les sujets opèrent quant à eux dans les domaines
+courants http_t,ssh_t,ftp_t,... Au moment de la connexion sur la machine, on
+assigne les noms d'utilisateurs Linux à des utilisateurs SELinux. Les
+utilisateurs SELinux sont autorisés par la politique de sécurité à des rôles
+spécifiques. Par exemple, l'utilisateur staff_u peut être autorisé pour les
+rôles user_r,staff_r et sysadm_r tandis que l'utilisateur user_u ne sera
+autorisé que pour le rôle user_r. Les roles sont quant à eux autorisés sur un
+nombre défini de domaines. Par exemple, le rôle staff_r pourra être permis
+d'entrer simplement dans le domaine http_t. Les utilisateurs sont donc rattachés
+à plusieurs rôle mais n'en assument qu'un à la fois. Ils peuvent le changer à
+convenance.
+
+#
+## Bac à sable (sandboxing)
+################################################################################
+
+Nous avons vu qu'il y a deux types de bacs à sable dans SELinux :
+  1 . Le contrôle d'accès par rôle (RBAC) qui empêche les utilisateurs d'entrer
+      dans un domaine sur lequel ils ne sont pas autorisés.
+  2 . Type Enforcement (TE) qui limite chaque domaine aux privilèges qu'ils
+      dont ils ont strictement besoin pour faire leur travail.
+
+#
+## Exemple
+################################################################################
+
+On considère le programme /usr/bin/blink qui fait clignoter une LED. Cet
+exécutable se voit assigné le contexte de sécurité {system_u,object_r,
+link_exec_t}. On reconnaît l'utilisateur SELinux system_u comme l'exécutable (un
+objet). Puisque les objets ne sont pas des acteurs, on leur assigne le rôle
+object_r qui sert de fourre-tout (un contexte de sécurité doit contenir un rôle,
+quoi qu'il arrive). Disons que le programme lit le fichier /etc/blink/msgs.txt
+et écrit ce qu'il trouve dans /dev/led. À chacun de ces objets, on doit assigner
+le contexte {system_u,object_r,blink_exec_t}. On doit donner des droits
+d'exécution dans le domaine blink_t pour lire et écrire les deux fichiers. On le
+fait avec la règle allow blink_t blink_data_t : file {read write};
+Pour permettre aux utilisateurs ordinaires (domaine user_t) d'exécuter le
+programme blink, on a besoin de la règle suivante : allow user_t blink_exec_t :
+file {execute}; Les utilisateurs peuvent alors exécuter le programme blink mais
+cela génère une transition de domaine, ce qui requière d'autres règles dans la
+politique de sécurité. Pour permettre la transition de user_t à blink_t on
+utilise allow user_t blink_t : process {transition}; Il faut ensuite que le
+programme blink serve de point d'entrée dans le domaine blink_t. Pour ça :
+allow blink_t blink_exec_t : file {entrypoint}; Pour que link puisse subir une
+transition de domaine : type_transition user_t blink_exec_t : process blink_t;
+Il faut ensuite permettre aux utilisateurs (le rôle user_r) d'entrer dans le
+domaine de blink : role user types blink_t; Ainsi, on permet à tous les
+utilisateurs d'exécuter blink en entrant dans le bon domaine mais si on veux
+restreindre quelles classes particulières d'utilisateurs peuvent entrer dans le
+domaine, on peut se servir plus finement des règles RBAC de SELinux.
+En résumé, on a :
+  # Contextes de fichier
+  /usr/bin/blink {system_u, object_r, blink_exec_t}
+  /etc/blink/msgs.txt {system_u, object_r, blink_data_t}
+  /dev/led {system_u, object_r, blink_data_t}
+  # Règles
+  allow blink_t blink_data_t : file {read write};
+  allow user_t blink_exec_t : file {execute};
+  allow blink_t blink_exec_t : file {entrypoint};
+  allow user_t blink_t : process {transition};
+  type_transition user_t blink_exec_t : process blink_t;
+  role user_r types blink_t;
+
+Mettons qu'on ait un utilisateur du nom de valkheim. Quand valkheim se connecte
+sur la machine, on lui assigne l'utilisateur SELinux user_u et on lui donne un
+shell qui est associé au contexte suivant : {user_u,user_r,user_t}. Si valkeim
+exécute le programme blink, une transition de domaine se produit et le contexte
+de sécurité du processus de blink est alors {user_u,user_r,blink_t}.
+
+#
+## Décisions de SELinux
+################################################################################
+
+SELinux fait des décisions quand aux accès et aux transitions. Les décisions
+d'accès gouvernent ce que les sujets peuvent faire avec les objets (puisse le
+sujet S lire le fichier F ?). Les décisions liées aux transitions interviennent
+quand un sujet cherche à invoquer un programme qui tourne dans un domaine
+différent et donc à entrer dans ce domaine (Généralement, un processus hérite de
+celui de son parent). Les décisions liées aux transitions interviennent
+également à la création d'un objet. Généralement, un objet hérite du contexte de
+sécurité de son répertoire parent mais ce n'est pas nécessairement le cas, par
+exemple si une transition à lieu. Ces transitions sont définies dans la
+politique de sécurité.
+
+
+#
+## Retour sur les transitions de domaine avec /usr/bin/blink
+################################################################################
+
+{user_u,user_r,user_t} {system_u,object_r,blink_exec_t} {user_u,user_r,blink_t}
+
+       ########                                                 #########
+       # bash # -------------> /usr/bin/blink  ---------------> # blink #
+       ########    exécute                        transition    #########
+                                                                   /|
+                                                                  / |
+                                                                 /  |
+                                                   /dev/lev ____/   |
+                                                                    |
+                                 {system_u,object_r,blink_data_t}   /
+                                                                   /
+                                          /etc/blink/msgs.txt ____/
+
+
+
+#
+## En résumé
+################################################################################
+
+SELinux apporte un contrôle d'accès obligatoire (MAC) à Linux. Il utilise à la
+fois le type enforcement (TE) et le contrôle d'accès basé sur les rôles (RBAC)
+pour limiter les potentiels dommages liés aux attaques de zero-day. On a vu
+comment SELinux se mettait en place au travers d'un exemple et de ses règles,
+entités et contextes. SELinux supporte également la méthode de contrôle d'accès
+de multi catégorie (MCS : multi-category security) et de multi niveau (MLS :
+multi-level security). Dans la pratique, les politiques de sécurité sont bien
+plus complexes (un de ses principales critiques) et même les politiques très
+ciblées proposées contiennent des centaines de milliers de règles.

@@ -1,0 +1,200 @@
+#
+## Les trois piliers de la sécurité
+################################################################################
+
+Les trois piliers sur laquelle la sécurité repose sont :
+
+  1 . Confidentialité
+  2 . Intégrité
+  3 . Disponibilité
+
+# Confidentialité
+##################
+
+La confidentialité assure que l'information privée ou confidentielle ne soit pas
+disponible ou dévoilée à des individus non autorisés à accéder à ladite
+information.
+La discrétion assure que les individus controlent quelle information
+leur est liée. Qu'elle soit collectée, stockée et rendue accessible par
+quiconque. La confidentialité couvre la dissimulation d'informations.
+La cryptographie protège la transmission d'informations sur un canal non fiable.
+Les mécanismes de contrôle d'accès protègent les accès non autorisés à la
+donnée.
+
+# Intégrité
+############
+
+L'intégrité est le niveau de confiance que l'on accorde à l'information,
+généralement pour prévenir d'une modification non autorisée. On distingue
+l'intégrité du contenu de l'information et de son origine. L'intégrité est
+assurée lorsqu'on bloque toutes les tentatives autorisées ou non de modifier
+l'information. L'authentification et les mécanismes de contrôle d'accès peuvent
+bloquer les utilisateurs non autorisés à modifier la donnée mais des mécanismes
+additionnels sont nécessaires pour définir comment les utilisateurs autorisés
+peuvent modifier la donnée.
+
+# Disponibilité
+################
+
+La disponibilité est la capacité d'accéder à une information désirée. Maintenir
+la disponibilité assure que le système fonctionne efficacement et qu'il n'est
+pas rendu inaccessible aux utilisateurs autorisés.
+
+#
+## Les différents types de menaces
+################################################################################
+
+Une menace est une potentielle violation des objectifs de sécurité mis en place.
+Cette violation n'a pas besoin d'avoir lieu pour qu'on s'en protège. L'action
+qui concrétise une menace est une attaque. On classe ces dernière en quatre
+catégories :
+
+  1 . Divulgation d'information à des utilisateurs non autorisés.
+  2 . Imposture qui conduit une entité autorisée à considérer comme valide une
+      information fausse.
+  3 . Perturbation d'un service, il ne fonctionne alors pas à son habitude.
+  4 . Usurpation d'un service, il est alors contrôlé par une entité non
+      autorisée.
+
+## 1 . Divulgation
+
+La divulgation est une menace à l'encontre du principe de confidentialité. Elle
+comprend plusieurs choses :
+
+  1 . La révélation d'informations sensibles à une entité non autorisée.
+  2 . L'interception non autorisée et directe d'informations sensibles circulant
+      entre des sources et destination autorisées.
+  3 . L'inférence : la reconnaissance indirecte d'informations sensibles à
+      partir de caractéristiques comportementales.
+  4 . L'intrustion d'une entité non autorisée dans un environnement dans lequel
+      transite de l'information sensisble obtenue par détournement des
+      mécanismes de défence.
+
+## 2 . Imposture
+
+L'imposture est une menace à l'encontre système ou du principe d'intégrité de la
+donnée. Elle comprend plusieurs choses :
+
+  1 . Mascarade où une entité non autorisée gagne l'accès à un système ou arrive
+      à effectuer des actions maclicieuses en se faisant passer pour une entité
+      autorisée.
+  2 . Falsification qui est est l'altération ou le remplacement de donnée valide
+      ou l'introduction de donnée invalide.
+  3 . Répudiation : un utilisateurs peut nier avoir envoyé ou reçu de la donnée.
+      (inverse du principe de non-répudiation).
+
+## 3 . Perturbation d'un service
+
+La perturbation d'un service est une menace à l'encontre du système ou de
+l'intégrité de la donnée. Elle comprend plusieurs choses :
+
+  1 . Incapacitation : destruction ou désactivation du matériel.
+  2 . Corruption : modification malicieuse du système dans le but de le faire
+      fonctionner de manière a priori inattendue.
+  3 . Obstruction : sabotage du système par le biais d'une désactivation de ses
+      capacité communicantes ou en causant une consommation excessive de
+      ressources (par exemple donner l'ordre à un serveur mal codé de se forker
+      en boucle ne lui permettrait plus d'écouter de nouveau ordres et
+      conduirait également à une consommation excessive des ressources).
+
+## 4 . Usurpation d'un service
+
+L'usurpation d'un service est une menace à l'encontre de l'intégrité dudit
+service. Elle comprend plusieurs choses :
+
+  1 . Mauvaise appropriation : utilisation détournée du service (par exemple un
+      système servant à scanner le réseau pourra être détourné pour réaliser un
+      déni de service).
+  2 . Mauvaise utilisation causant le système à fonctionner de manière
+      préjudiciable à l'encontre de la sécurité du système (par exemple en
+      réécrivant des règles de pare-feu).
+
+#
+## Concepts et relations
+################################################################################
+
+
+                            accorde de l'importance aux
+  #################-----------------------------------------------+
+  # PROPRIÉTAIRES #         veux réduire les                      |
+  #################-----------------------------------+           |
+    | |                                               |           |
+    | |                             pour réduire      |           |
+    | |         +----------------+----------------+   |           |
+    | +-------->| CONTRE-MESURES |--------+       |   |           |
+    | imposent  +----------------+ peuvent|       |   |           |
+    |            ^                contenir|       |   |           |
+    |            |peuvent être            |       |   |           |
+    |            |réduites par            |       |   |           |
+    |            |                        V       |   |           |
+    |            +--------+----------------+      |   |           |
+    |                     | VULNÉRABILITÉS |      |   |           |
+    +-------------------->+----------------+      |   |           |
+peuvent être au courant de    ^    |              |   |           |
+                              |    |              V   V           |
+ ##################           |    |ammène des +---------+        |
+ # RESPONSABLE DE #        qui|    +---------->| RISQUES |        |
+ #    MENACES     # exploitent|                +---------+        |
+ ##################           |       qui augmentent^             |
+    |      |                  |                     |             V
+    |      | génèrent   +---------+-----------------+          ###########
+    |      +----------->| MENACES |         qui menace         # DONNÉES #
+    |                   +---------+--------------------------->###########
+    |                                                             ^
+    |                                                             |
+    +-------------------------------------------------------------+
+
+#
+## Stratégie de sécurité
+################################################################################
+
+Une stratégie de sécurité induit trois points essentiels :
+
+  1 . Une politique
+  2 . Des mécanismes
+  3 . Des garanties
+
+## Politique de sécurité
+
+Les modèles de sécurité et mécanismes sont conçus pour satisfaire une politique
+de sécurité. Une politique de sécurité statue sur ce qui est et ce qui n'est pas
+autorisé. Elle est construire sur un ensemble de règles, de déclarations. Une
+règle qui construit la politique de sécurité se doit de définir l'état sécurisé
+et donc autorisé et à l'inverse, l'état peu sûr et donc non autorisé. C'est en
+somme, un document informel qui décrit ce que les utilisateurs peuvent et ne
+peuvent pas faire.
+
+## Les mécanismes de sécurité
+
+Un mécanisme de sécurité est une méthode, outil ou procédure dont le but est
+d'appliquer une politique de sécurité. Implémenter une politique de sécurité
+implique de mettre en place de mécanismes dans différents domaines :
+  1 . Prévention : utiliser le chiffrement pour prévenir l'interception.
+  2 . Détection : superviser/monitorer pour détecter les dénis de service (ex).
+  3 . Réponse : prendre des initiatives pour réduire les dommages liés à une
+      attaque.
+  4 . Rétablissement : utiliser des systèmes de sauvegarde pour soulager les
+      risques liés à l'intégrité et à la disponibilité des données.
+Les mécanismes de sécurité peuvent être non techniques comme par exemple
+demander une preuve d'identité avant de reconfigurer un mot de passe.
+
+## Les garanties de sécurité
+
+Les utilisateurs des mécanismes de sécurité doivent être plus ou moins certains
+que lesdits mécanismes assurent correctement ce pour quoi ils sont destinés.
+La garantie se mesure suivant le degré de confiance qu'on peut placer dans :
+  1 . spécification : le système est il bien divisé entre des états sécurisés et
+      des états non-sécurisés ?
+  2 . Conception : le système en place est-t-il bien en accord avec sa
+      spécification ? Peut-t-on le prouver ?
+  3 . Implémentaion : est-t-elle sans bug ?
+Les garanties sont des niveaux de confiances, pas des preuves. L'évaluation est
+le processus permettant de mesurer la garantie.
+
+#
+## Références
+################################################################################
+
+  - Introduction to computer security - bishop
+  - computer security : principles and practice - stallings
+  - NIST security handbook
