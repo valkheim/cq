@@ -325,3 +325,14 @@ de multi catégorie (MCS : multi-category security) et de multi niveau (MLS :
 multi-level security). Dans la pratique, les politiques de sécurité sont bien
 plus complexes (un de ses principales critiques) et même les politiques très
 ciblées proposées contiennent des centaines de milliers de règles.
+
+#
+## Références
+################################################################################
+
+  - Computer Security : Principles and Practice - Stallings
+  - SELinux : NSA's Security Enhanced Linux - McCarty
+  - Operating Systems in Depth - Deoppner
+  - The SELinux Notebook - Haines
+  - RedHat documentation
+  - Gentoo wiki
