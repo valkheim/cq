@@ -1,0 +1,323 @@
+#
+## Les modèles de sécurité
+################################################################################
+
+Nous allons étudier un modèle en particulier : le modèle Bell-La Paluda. C'est
+un modèle de confidentialité pour des systèmes multi-niveaux. Bell-La Paluda
+modèle les politiques de confidentialité utilisées dans les domaines militaires
+et gouvernementaux ou le secret et la non-divulgation d'informations est
+primordial. Le but est d'empêcher que les utilisateurs (sujets dans le modèle)
+d'accéder aux informations (objets dans le modèle) pour lesquelles ils n'ont
+pas été autorisés.
+Nous regarderons aussi du côté du modèle du mur chinois (Chinese Wall). C'est un
+modèle hybride qui essaye d'adresser les exigences de confidentialité et
+d'intégrité dans une configuration commerciale.
+
+#
+## Bell-La paluda
+################################################################################
+
+Dans les années 70, le département militaire des états-unis voult tirer parti
+des systèmes informatiques en temps partagés. Un système de contrôle d'accès qui
+puisse assurer le département que la confidentialité de la données était bien
+implémentée entre les différents utilisateurs du système (selon des critères de
+rang, de sensibilité de la donnée et de catégorisation de la donnée) était
+requis. Le succès des "tiger teams" dans l'exploitation des systèmes indiquait
+qu'une nouvelle approche plus surte concernant la conception et l'implémentation
+était également requise. Beaucoup d'efforts ont été investis dans le
+développement de modèles qui puissent garantir de la solidité et la fiabilité
+de polices de sécurité. L'un de ces modèles était le Bell-La Paluda.
+
+#
+## BLP - Classification, habilitation et niveau de sécurité
+################################################################################
+
+Dans le modèle Bell-La Paluda, on assigne à chaque sujet et objet une
+classification de sécurité.
+La classification d'un sujet est son habilitation, son niveau d'autorisation.
+On peut assigner aux sujets et aux objets zéro ou plusieurs catégories. Chacune
+de ces catégories décrit un type d'information (permet la séparation des
+privilèges et le principe du "besoin d'en connaitre" (need to know)). Quand on
+regroupe la classification et les catégories, on obtient une paire qu'on appelle
+le niveau de sécurité.
+
+                Top Secret                 Fichiers personnels
+                    |                             |
+                    |                             |
+                  Secret                        Email
+                    |                             |
+                    |                             |
+                Confidentiel                Journaux d'audit
+                    |                             |
+                    |                             |
+               Non classifié              Listes téléphoniques
+
+
+                     Deux exemples de classifications.
+
+
+
+                                 {CRYPT,NUC,ARMY}
+                                      _/|\_
+                                    _/  |  \_
+                                  _/    |    \_
+                                _/      |      \_
+                              _/        |        \_
+                            _/          |          \_
+                          _/            |            \_
+                     {CRYPT,NUC}   {CRYPT,ARMY}   {NUC,ARMY}
+                         |  \_      _/     \_      _/  |
+                         |    \_  _/         \_  _/    |
+                         |      \_             _/      |
+                         |    _/  \_         _/  \_    |
+                         |  _/      \_     _/      \_  |
+                         |_/          {NUC}         {ARMY}
+                      {CRYPT}           |            _/
+                            \_          |          _/
+                              \_        |        _/
+                                \_      |      _/
+                                  \_    |    _/
+                                    \_  |  _/
+                                      \_|_/
+                                       {}
+
+                  Représentation d'un ensemble de catégories
+
+#
+## Description informelle du modèle.
+################################################################################
+
+  - "No read-up" : un sujet peut seulement lire un objet plus bas ou égal à son
+    niveau de sécurité. Dans le modèle on parle de "simple security property" ou
+    "ss-property".
+  - "No write-down" : un sujet peut seulement écrire dans un objet plus haut ou
+    égal à son niveau de sécurité. Dans le modèle, on parle de "*-property".
+  - DAC : Un sujet peut ajouter/retirer un accès à des objets tant que cela ne
+    viole pas les deux règles MAC sus-mentiionnées. Dans le modèle, on parle de
+    ds-property.
+
+#
+## Modes d'accès
+################################################################################
+
+Dans la description originelle du modèle, on dispose de quatre type d'accès pour
+chaque objet :
+
+  1 . Lecture : le sujet a un droit de lecture sur l'objet
+  2 . Ajout : le sujet a un droit exclusif d'écriture sur l'objet
+  3 . Écriture : le sujet a un droit de lecture et d'écriture sur l'objet
+  4 . Exécution : Le sujet peut invoquer l'objet pour un exécution
+
+#
+## Prédominance des niveaux de sécurité
+################################################################################
+
+Le niveau de sécurité (NS) {Classe 1, Catégories 1} domine le niveau {Classe 2,
+Catégories 2} si et seulement si Classe 1 >= Classe 2 et
+Catégories 1 ⊇ Catégories 2.
+Ou écrit autrement : (C1,CA1) domine (C2,CA2) ⇔ C1 ≥ C2 ∧ CS 1 ⊇ CS 2
+La prédominance est réflexive: ∀x ∈ NS : x domine x
+La prédominance est transitive: ∀x, y ∈ SL : x domine y, y domine z ⇒ x domine z
+
+#
+## Description formelle du modèle
+################################################################################
+
+L'état courant du système Σ, est décrit par le quadruplet (b, M, f , H).
+  - L'accès courant b est un triplet de la forme (sujet, objet, mode d'accès) ou
+    SOA et qui signifie que le sujet S est en train d'accéder à O avec le mode
+    d'accès A.
+  - La matrice d'accès M qui rend compte pour chaque M(i,j) des accès droits
+    permis par le sujet S(i) pour l'objet O(j).
+  - La fonction de niveau f qui assigne un niveau de sécurité pour chaque sujet
+    et objet et qui consiste en trois points :
+      1 . fo(Oj) est le niveau de sécurité assigné à l'objet Oj
+      2 . fs(Si) est l'habilitation maximale du sujet Si
+      3 . fc(Si) est le niveau de sécurité courant de Si
+  - L'habilitation maximale d'un sujet est le niveau de sécurité maximal dans
+    lequel il peut opérer.
+  - La hiérarchie H est un arbre dirigé dans lequel les noeuds sont des objets
+    et le niveau de sécurité d'un objet domine celui des noeuds fils.
+
+#
+## Propriétés de Bell-La Paluda
+################################################################################
+
+  - ss-property : chaque triplet de la forme (Si, Oj, lecture) dans l'accès
+    courant b a la propriété fc(Si) domine fo(Oj)
+  - *-property : chaque triplet de la forme (Si, Oj, ajout) dans l'accès courant
+    b a la propriété fc(Si) est dominé par fo(Oj)
+    Chaque triplet de la forme (Si, Oj, écriture) dans l'accès courant b a la
+    propriété fc(Si) = fo(Oj)
+  - ds-propery : si (Si, Oj, Ax) est dans l'accès courant b, alors le mode
+    d'accès Ax est enregistré dans l'élément (Si,Oj) de M ou
+    (Si, Oj, Ax) =⇒ A x ∈ M[Si, Oj]
+
+#
+## Thérorème basique de sécurité pour Bell-La Paluda
+################################################################################
+
+Ces trois propriétés peuvent être utilisées pour définir un système sûr de
+confidentialité. Soit Σ un système avec un état initial sûr σ0 et T un ensemble
+d'états de transformations. Si chaque élément de T préserve les trois conditions
+alors chaque état σi, i ≥ 0 est sûr.
+Étant donné la conception et l'implémentation, il est théoriquement possible de
+prouver que le système est sur en montrant que chaque action induit un nouvel
+état qui satisfait ces trois propriétés.
+
+#
+## Exemples d'opérations abstraites sur Bell-La Paluda
+################################################################################
+
+  1 . Ajouter accès : ajouter un triplet SOA à b
+  2 . Retirer accès : retirer un triplet SOA de b
+  3 . Changer le niveau d'objet : changer la valeur fo(Oj) pour un objet Oj
+  4 . Changer le niveau courant : changer fc(Si) pour un sujet Si
+  5 . Donner un droit d'accès : ajouter le mode d'accès A à M(i,j)
+  6 : Révoquer un droit d'accès : retirer le mode d'accès A à M(i,j)
+  7 . Créer un objet : ajouter un objet à la hiérarchie H
+  8 . Supprimer un objet : retirer un objet de la hiérarchie H
+
+#
+## Le modèle d'intégrité Biba
+################################################################################
+
+Le modèle Bell-La Paluda se concentre sur la confidentialité tandis que le
+modèle Biba se concentre sur l'intégrité et est donc concerné par les
+modifications non autorisées de données. Biba est en place là ou la donnée doit
+être visible aux utilisateurs à plusieurs niveaux mais ne doit être modifiable
+que par des agents accrédités. Comme pour Bell-La Paluda, les classifications et
+catégories imposent un lien dominant-dominé entre les niveaux mais on parle de
+niveaux d'intégrité au lieu de niveau de sécurité. En tant que modèle
+d'intégrité, le rôle de Biba est de permettre d'avoir confiance dans
+l'information.
+
+#
+## Les modes d'accès dans Biba
+################################################################################
+
+
+  - Lecture : lire l'information dans un objet
+  - Écriture : écrire et mettre à jour l'information dans un objet
+  - Exécution : exécuter un objet
+  - Invoquer : communiquer avec un autre sujet
+
+#
+## Les règles
+################################################################################
+
+  - Intégrité simple : un sujet peut modifier un objet si et seulement si le
+    niveau d'intégrité du sujet domine le niveau d'intégrité de l'objet ou pas
+    d'écriture au dessus ("no write-up").
+  - Confinement de l'intégrité : un sujet peut lire un objet si et seulement si
+    le niveau d'intégrité du sujet domine le niveau d'intégrité de l'objet ou
+    pas de lecture en dessous ("no read-down").
+  - Propriété d'invocation : un sujet peut invoquer (envoyer un message à) un
+    autre sujet si et seulement si le niveau d'intégrité du premier sujet domine
+    le niveau d'intégrité du second.
+  - La simple règle d'intégrité évite la contamination de donnée de haute
+    intégrité par les sujet de bas niveaux de sécurité.
+  - La règle du confinement d'intégrité évite qu'un troyen copie de la donnée de
+    basse intégrité en une de haute intégrité.
+  - Ces règles sont analogues à celles rencontrées dans le modèle de Bell-La
+    Paluda mais renverse al signification de lecture/écriture en illustrant
+    l'incompatibilité du maintien de la confidentialité et de l'intégrité à
+    travers les systèmes de niveaux de sécurité multiples (MLS).
+
+#
+## Le modèle du mur chinois (Chinesse Wall model)
+################################################################################
+
+Le modèle du mur chinois adresse à la fois des problématiques de confidentialité
+et d'intégrité. C'est un politique de sécurité hybride. Un problème récurrant
+qui touche à la fois à l'intégrité et à la confidentialité de la donnée dans le
+domaine du commerce est la notion de conflit d'intéret. C'est un problème que le
+modèle du mur chinois tente de résoudre.
+
+#
+## Le modèle
+################################################################################
+
+Le modèle dispose des éléments suivants :
+  - sujets : entités actives (utilisateurs ou processus) qui peuvent accéder à
+    des objets protégés
+  - information : informations relatives à une entreprise organisées dans une
+    hiérarchie à trois niveaux qui du bas en haut donne :
+      1 . objets : objets indivisibles d'informations (documents) liés à une
+          entreprise particulière
+      2 . jeux de données (DS) : tous les objets d'une même entreprise
+      3 . Classes de conflits d'intérêt (CI) : les jeux de données des
+          entreprises qui sont en concurrence
+  - règles d'accès : règles de droits d'accès en lecture et écriture
+
+
+                              Ensemble de tous les objets
+                                          |
+                  +-----------------------+------------------------+
+                  |                       |                        |
+                 _|__                    _|__                     _|__
+Classes de      /    \                  /    \                   /    \
+conflits       | CI 1 |                | CI 2 |                 | CI 3 |
+d'intérêts      \____/                  \____/                   \____/
+                  |                       |                        |
+                  |                       |                        |
+                  |                       |                        |
+            +-----+-----+            +---------+             +-----+-----+
+            |           |            |Pétrole A|             |            |
+Jeux    +--------+  +--------+       +---------+         +--------+  +--------+
+de      |Banque A|  |Banque B|            |              |Gasoil A|  |Gasoil B|
+données +--------+  +--------+            F              +--------+  +--------+
+          |   |       |  |  |                               |  |          |
+Objets    A   B       C  D  E                               G  H          I
+
+
+Un utilisateur peut avoir accès à Banque A et Gasoil B, mais pas Banque A et
+Banque B.
+Dans cet exemple, les jeux de données d'un domaine (banque, pétrole, gasoil),
+sont rangés ensemble dans une même classe de conflits d'intérêts (classe de CI).
+Le modèle du mur chinois n'assigne pas de niveau de sécurité/intégrité aux
+sujets et objets comme vu dans les modèles précédents. Au lieu de ça,
+l'historique des accès d'un sujet détermine ses droits d'accès courants. Les
+sujets ne peuvent accéder à de l'information que sous réserve qu'elle n'est pas
+n'induit aucun conflit d'intérêt avec de l'information qui appartient à une
+entreprise concurrente. Une fois qu'un sujet accède à de l'information d'un jeu
+de données, un mur est monté pour protéger l'information dans tous les autres
+jeux de données de la classe de conflits d'intérets. Puisque de la donnée peut
+être accédée depuis différents jeux de données, la forme du mur peut être
+modifiée pour prendre ces nouvelles restrictions en compte. Un mur différent est
+monté pour chaque sujet et est basé sur son historique des accès. On a besoin de
+deux règles pour faire respecter cette politique : la simple règle de sécurité
+(simple security rule) et la "*-property rule". Elles sont appellées ainsi grâce
+à leur ressemblence à celles du modèle Bell-La Paluda.
+
+#
+## Simple security rule
+################################################################################
+
+Un sujet S peut lire un objet O si et seulement si
+  1 . O est dans le même JD qu'un objet déjà accessible par S
+  2 . O est dans une CCI dans laquelle S n'a pas encore accédé d'objet
+Dans notre exemple, un individu Bob pourrait accéder au JD de la Banque A mais
+serait interdit d'accès au JD de Banque B puisqu'il est déjà en possession
+d'information d'une entreprise concurrente (et donc dans la même CCI). Cet
+individu (détenant exclusivement des informations dans Banque A) serait par
+libre d'accéder à des informations d'une autre CCI, par exemple Pétrole A ou
+Gasoil B.
+
+#
+## *-property rule
+################################################################################
+
+Pour éviter les accès par infection d'un tiers et donc l'usurpation d'identité
+et des droits d'accès associés, on introduit la *-property rule.
+Un sujet S peut écrire un objet O si et seulement si :
+  1 . S peut lire O par la simple security rule
+  2 . Tous les objets lisibles ar S sont dans le même JD que O
+
+#
+## Références
+################################################################################
+
+  - Introduction to Computer Security - Bishop
+  - computer security : principles and practice - stallings
+  - Access Control : Policies, Models and Mechanisms - Samarati and di Vimercati
