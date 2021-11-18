@@ -2,7 +2,7 @@
 
 
 * `/usr/bin/script -qc /bin/bash /dev/null`
-* `python -c 'import pty; pty.spawn("/bin/sh")'
+* `python -c 'import pty; pty.spawn("/bin/sh")'`
 * `/bin/sh -i`
 * or
 ```
