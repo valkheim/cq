@@ -45,3 +45,4 @@ syscall        ; call kernel
 ## Links
 
 * https://www.commandlinefu.com/commands/matching/shellcode/c2hlbGxjb2Rl/sort-by-votes
+* https://github.com/yrp604/rappel REPL for ASM, showing instructions side-effects
