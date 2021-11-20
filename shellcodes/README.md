@@ -1,12 +1,12 @@
 ## Assemble / link 
 
 ```
-nasm -f elf32 -o test.o test.S
+nasm -f elf32 test.S
 ld -m elf_i386 -o test test.o
 ```
 
 ```
-nasm -f elf64 -o test.o test.S
+nasm -f elf64 test.S
 ld -o test test.o
 ```
 
